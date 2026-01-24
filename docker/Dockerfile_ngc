@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+
+############################
+# Set the base image of NGC PyTorch
+############################
+# NGC PyTorch image tag
+ARG NGC_PYTORCH_TAG=25.11-py3
+
+# Base image
+FROM nvcr.io/nvidia/pytorch:${NGC_PYTORCH_TAG}
+
+############################
+# Install dependencies
+############################
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+# Install apt packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git curl wget ca-certificates \
+    ffmpeg \
+    libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+# pip upgrade
+RUN python -m pip install --upgrade pip setuptools wheel
+# Install other Python libraries
+WORKDIR /workspace
+COPY requirements.txt /workspace/requirements.txt
+RUN pip install -r requirements.txt
+
+############################
+# Create non-root user
+############################
+ARG USERNAME=developer
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} ${USERNAME} \
+    && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME}
+USER ${USERNAME}

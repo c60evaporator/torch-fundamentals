@@ -1,0 +1,14 @@
+# environment
+.ch2to5env/
+
+# data
+data/*
+!data/.gitkeep
+
+# cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# secrets
+.env*
