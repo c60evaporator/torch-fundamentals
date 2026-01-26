@@ -4,28 +4,30 @@
 # Set the base image with CUDA and cuDNN
 ############################
 # CUDA and Ubuntu Versions
-ARG CUDA_VERSION=12.8.1
+ARG CUDA_VERSION=12.1.1
 ARG UBUNTU_VERSION=22.04
 
 # Base image
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu${UBUNTU_VERSION}
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu${UBUNTU_VERSION}
 
 ############################
-# Install Python, PyTorch, and other dependencies
+# Install Python, PyTorch, OpenMMLab, and other dependencies
 ############################
 # Python version
 ARG PYTHON_VERSION=3.10
 # PyTorch versions
-ARG TORCH_CUDA=cu128
-ARG TORCH_VERSION=2.10.0
-ARG TORCHVISION_VERSION=0.25.0
+ARG TORCH_CUDA=cu121
+ARG TORCH_VERSION=2.1.0
+# OpenMMLab versions
+ARG MMENGINE_MINIMUM_VERSION=0.10.0
+ARG MMCV_MINIMUM_VERSION=2.1.0
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
-# Install Python and other apt packages
+# Install Python and other apt packages (libsm6, libxext6, and libxrender1 are for OpenCV imshow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python${PYTHON_VERSION} \
     python${PYTHON_VERSION}-dev \
@@ -35,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl wget ca-certificates \
     ffmpeg \
     libgl1 libglib2.0-0 \
+    libsm6 libxext6 libxrender1 \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python \
     && ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 \
@@ -42,10 +45,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # pip upgrade
 RUN pip install --upgrade pip setuptools wheel
 # Install PyTorch and torchvision
-RUN pip install \
-    torch==${TORCH_VERSION} \
-    torchvision==${TORCHVISION_VERSION} \
-    --index-url https://download.pytorch.org/whl/${TORCH_CUDA}
+RUN pip install torch==${TORCH_VERSION} torchvision \
+      --index-url https://download.pytorch.org/whl/${TORCH_CUDA}
+# Install MIM
+RUN pip install --no-cache-dir openmim
+# Install MMEngine
+RUN mim install "mmengine>=${MMENGINE_MINIMUM_VERSION}"
+# Install MMCV
+RUN mim install "mmcv>=${MMCV_MINIMUM_VERSION}"
+# Install MMDetection from source
+WORKDIR /root/workspace
+RUN git clone https://github.com/open-mmlab/mmdetection.git
+WORKDIR /root/workspace/mmdetection
+RUN pip install -v . --no-build-isolation
+# Install MMDetection3D
+WORKDIR /root/workspace
+RUN git clone https://github.com/open-mmlab/mmdetection3d.git
+WORKDIR /root/workspace/mmdetection3d
+RUN pip install -v . --no-build-isolation
 # Install other Python libraries
 WORKDIR /workspace
 COPY requirements.txt /workspace/requirements.txt

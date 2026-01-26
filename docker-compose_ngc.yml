@@ -3,8 +3,8 @@ services:
     image: "${IMAGE_NAME:-ngc-dev}:${IMAGE_TAG:-2511}"
     # docker build options
     build:
-      context: ./docker_ngc
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile_ngc
       # --build-arg option
       args:
         # NGC PyTorch image tag
