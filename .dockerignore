@@ -27,3 +27,7 @@ wandb/
 .env
 *.pem
 *.key
+
+# UniAD folders
+UniAD/ckpts/
+UniAD/data/

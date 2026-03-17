@@ -1,30 +1,31 @@
 services:
-  mmdet-dev:
-    image: "${IMAGE_NAME:-mmdet-dev}:${IMAGE_TAG:-cu121}"
+  uniad-dev:
+    image: "${IMAGE_NAME:-uniad-dev}:${IMAGE_TAG:-uniad2.0}"
     # docker build options
     build:
       context: .
-      dockerfile: docker/Dockerfile_mmdet
+      dockerfile: docker/Dockerfile_uniad
       # --build-arg option
       args:
         # CUDA and Ubuntu Versions
-        CUDA_VERSION: "${CUDA_VERSION:-12.1.1}"
+        CUDA_VERSION: "${CUDA_VERSION:-11.8.0}"
         UBUNTU_VERSION: "${UBUNTU_VERSION:-22.04}"
         # Python version
-        PYTHON_VERSION: "${PYTHON_VERSION:-3.10}"
+        PYTHON_VERSION: "${PYTHON_VERSION:-3.9}"
         # PyTorch versions
-        TORCH_CUDA: "${TORCH_CUDA:-cu121}"
-        TORCH_VERSION: "${TORCH_VERSION:-2.1.0}"
-        # OpenMMLab versions
-        MMENGINE_MINIMUM_VERSION: "${MMENGINE_MINIMUM_VERSION:-0.10.0}"
-        MMCV_MINIMUM_VERSION: "${MMCV_MINIMUM_VERSION:-2.1.0}"
+        TORCH_CUDA: "${TORCH_CUDA:-cu118}"
+        # Conda settings
+        MINIFORGE_VERSION: "${MINIFORGE_VERSION:-24.11.0-1}"
+        CONDA_DIR: "${CONDA_DIR:-/opt/conda}"
+        # GPU architecture (https://en.wikipedia.org/wiki/CUDA#GPUs_supported)
+        TORCH_CUDA_ARCH_LIST: "${TORCH_CUDA_ARCH_LIST:-8.9}"
         # Match host UID/GID to avoid permission issues on bind mounts
         USERNAME: "${USERNAME:-developer}"
         UID: "${HOST_UID:-1000}"
         GID: "${HOST_GID:-1000}"
 
     # Container name (--name option)
-    container_name: mmdet_dev
+    container_name: uniad_dev
     # Set resource sharing to host
     deploy:
       resources:
@@ -45,9 +46,14 @@ services:
     # Environment variables (-e option)
     environment:
       # Base path for datasets inside the container
-      DATASET_ROOT: "/workspace/data"
+      DATASET_ROOT: "/workspace/UniAD/data"
     
     # Volume mounts
     volumes:
-      # Project (str, settings etc. managed by Git)
-      - .:/workspace
+      # UniAD
+      - ./UniAD:/workspace/UniAD
+      # Mount nuScenes dataset as read-only
+      - type: bind
+        source: "${DATASET_HOST:-./data/nuscenes}"
+        target: "${DATASET_CONT:-/workspace/UniAD/data/nuscenes}"
+        read_only: true

@@ -1,0 +1,91 @@
+# syntax=docker/dockerfile:1
+
+############################
+# Set the base image with CUDA and cuDNN
+############################
+# CUDA and Ubuntu Versions
+ARG CUDA_VERSION=11.8.0
+ARG UBUNTU_VERSION=22.04
+
+# Base image
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu${UBUNTU_VERSION}
+
+############################
+# Install Python, Conda(Miniforge), PyTorch, OpenMMLab, and other dependencies
+############################
+# Python version
+ARG PYTHON_VERSION=3.9
+ARG TORCH_CUDA=cu118
+# Miniforge settings
+ARG MINIFORGE_VERSION=24.11.0-1
+ARG CONDA_DIR=/opt/conda
+# GPU architecture for mmcv build
+ARG TORCH_CUDA_ARCH_LIST=8.9
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+# Install OS packages (libsm6, libxext6, and libxrender1 are for OpenCV imshow)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git curl wget ca-certificates \
+    ffmpeg \
+    libgl1 libglib2.0-0 \
+    libsm6 libxext6 libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+# Install Miniforge
+RUN curl -fsSL -o /tmp/Miniforge3.sh \
+      https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/Miniforge3-Linux-x86_64.sh \
+    && bash /tmp/Miniforge3.sh -b -p ${CONDA_DIR} \
+    && rm /tmp/Miniforge3.sh
+ENV PATH=${CONDA_DIR}/bin:${PATH}
+
+# a. Env: Create a conda virtual environment.
+RUN conda create -n uniad2.0 python=${PYTHON_VERSION} -y
+# b. Torch: Install PyTorch and torchvision
+RUN conda run -n uniad2.0 \
+    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 \
+      --index-url https://download.pytorch.org/whl/${TORCH_CUDA}
+# mmcv build settings
+ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} \
+    FORCE_CUDA=1 \
+    MMCV_WITH_OPS=1
+# c. Install mmcv-series packages
+RUN conda run -n uniad2.0 \
+    pip install -v mmcv-full==1.6.1 -f https://download.openmmlab.com/mmcv/dist/${TORCH_CUDA}/torch2.0/index.html
+RUN conda run -n uniad2.0 \
+    pip install mmdet==2.26.0 mmsegmentation==0.29.1
+RUN conda run -n uniad2.0 \
+    pip install --no-build-isolation mmdet3d==1.0.0rc6
+
+# d. Install UniAD (UniAD repository should be cloned to the host before building the Docker image)
+WORKDIR /workspace/UniAD
+COPY UniAD/requirements.txt /workspace/UniAD/requirements.txt
+RUN conda run -n uniad2.0 \
+    pip install -r requirements.txt
+# Install other Python libraries
+WORKDIR /workspace
+COPY requirements.txt /workspace/requirements.txt
+RUN conda run -n uniad2.0 \
+    pip install -r requirements.txt
+
+# Copy UniAD folder (this command is not needed if UniAD folder is mounted as a volume)
+# COPY UniAD/ /workspace/UniAD/
+
+############################
+# Create non-root user
+############################
+ARG USERNAME=developer
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} ${USERNAME} \
+    && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME} \
+    && chown -R ${UID}:${GID} /workspace
+USER ${USERNAME}
+
+# Enable conda commands for non-root user
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/${USERNAME}/.bashrc \
+ && echo "conda activate uniad2.0" >> /home/${USERNAME}/.bashrc
+ENV PATH="/opt/conda/bin:${PATH}"

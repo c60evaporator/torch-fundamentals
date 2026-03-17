@@ -58,5 +58,6 @@ ARG USERNAME=developer
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g ${GID} ${USERNAME} \
-    && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME}
+    && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME} \
+    && chown -R ${UID}:${GID} /workspace
 USER ${USERNAME}

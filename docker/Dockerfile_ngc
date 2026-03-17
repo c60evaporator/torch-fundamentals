@@ -47,5 +47,6 @@ RUN groupadd -g ${GID} ${USERNAME} || groupmod -n ${USERNAME} $(getent group ${G
     else \
         # If no existing user with UID found: create new user
         useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME}; \
-    fi
+    fi \
+    && chown -R ${UID}:${GID} /workspace
 USER ${USERNAME}

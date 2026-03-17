@@ -13,3 +13,8 @@ __pycache__/
 # secrets
 .env*
 !env_examples/.env*
+
+src/ch1_neuralnet/cmu_face
+
+# UniAD
+UniAD/
