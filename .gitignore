@@ -11,10 +11,9 @@ __pycache__/
 .ipynb_checkpoints/
 
 # secrets
-.env*
-!env_examples/.env*
+.env
 
-src/ch1_neuralnet/cmu_face
+ch2to5/src/ch1_neuralnet/cmu_face
 
 # UniAD
-UniAD/
+ch6_3dmodels/UniAD/
