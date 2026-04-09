@@ -1,9 +1,11 @@
 # environment
-.ch2to5env/
+ch2to5/.ch2to5env/
 
 # data
-data/*
-!data/.gitkeep
+ch2to5/data/*
+!ch2to5/data/.gitkeep
+ch6_3dmodels/data/*
+!ch6_3dmodels/data/.gitkeep
 
 # cache
 __pycache__/
@@ -12,8 +14,6 @@ __pycache__/
 
 # secrets
 .env
-
-ch2to5/src/ch1_neuralnet/cmu_face
 
 # UniAD
 ch6_3dmodels/UniAD/
